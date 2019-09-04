@@ -22,13 +22,25 @@ class WeatherViewController: UIViewController, CLLocationManagerDelegate, Change
     //TODO: Declare instance variables here
     let locationManager = CLLocationManager ()
     let weatherDataModel = WeatherDataModel()
-
+    var factor : Bool = false
+    var updateFile : Any = ""
+    
     
     //Pre-linked IBOutlets
     @IBOutlet weak var weatherIcon: UIImageView!
     @IBOutlet weak var cityLabel: UILabel!
     @IBOutlet weak var temperatureLabel: UILabel!
-
+    @IBAction func tempSwitch(_ sender: UISwitch) {
+        if sender.isOn {
+            factor = true
+            updateWeatherData(json: updateFile as! JSON)
+        }
+        else{
+            factor = false
+            updateWeatherData(json: updateFile as! JSON)
+        }
+        
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -50,24 +62,25 @@ class WeatherViewController: UIViewController, CLLocationManagerDelegate, Change
     
     //Write the getWeatherData method here:
     
-    func getWeatherData(url: String, parameters: [String : String]) {
+    func getWeatherData (url: String, parameters: [String : String]) {
         Alamofire.request(url, method: .get, parameters: parameters).responseJSON {
             response in
             if response.result.isSuccess {
                 print("Success! Got the weather data")
                 let weatherJSON : JSON = JSON(response.result.value!)
                 self.updateWeatherData(json: weatherJSON)
+                self.updateFile = weatherJSON
                 print(weatherJSON)
             }
             else {
-                print ("Error \(response.result.error)")
+                print ("Error \(String(describing: response.result.error))")
                 self.cityLabel.text = "Connection Issues"
             }
         }
         }
 
     
-    
+
     
     
     
@@ -79,8 +92,9 @@ class WeatherViewController: UIViewController, CLLocationManagerDelegate, Change
     
 
     func updateWeatherData (json : JSON){
+        if factor == false {
         if let tempResult = json ["main"]["temp"].double{
-        weatherDataModel.temperature = Int (tempResult - 273.15)
+        weatherDataModel.temperature = Int (tempResult-273.15)
         weatherDataModel.city = json["name"].stringValue
         weatherDataModel.condition = json["weather"][0]["id"].intValue
         weatherDataModel.weatherIconName = weatherDataModel.updateWeatherIcon(condition: weatherDataModel.condition)
@@ -90,6 +104,21 @@ class WeatherViewController: UIViewController, CLLocationManagerDelegate, Change
         else{
             cityLabel.text = "Weather Unavailable"
         }
+        }
+        else{
+            if let tempResult = json ["main"]["temp"].double{
+                weatherDataModel.temperature = Int ((tempResult-273.15)*(9/5)+32)
+                weatherDataModel.city = json["name"].stringValue
+                weatherDataModel.condition = json["weather"][0]["id"].intValue
+                weatherDataModel.weatherIconName = weatherDataModel.updateWeatherIcon(condition: weatherDataModel.condition)
+                
+                updateUIWithWeatherData()
+            }
+            else{
+                cityLabel.text = "Weather Unavailable"
+            }
+        }
+        
     }
     
     
